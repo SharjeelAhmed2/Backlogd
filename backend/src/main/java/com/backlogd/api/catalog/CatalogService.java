@@ -59,11 +59,18 @@ public class CatalogService {
                 .orElseGet(() -> mediaRepository.save(Media.from(fetch(ref))));
     }
 
+    /** Caches an already-fetched catalog title (used by importers), reusing the stored copy if present. */
+    @Transactional
+    public Media resolve(CatalogItem item) {
+        return mediaRepository.findBySourceAndExternalId(item.source(), item.externalId())
+                .orElseGet(() -> mediaRepository.save(Media.from(item)));
+    }
+
     private CatalogItem fetch(MediaRef ref) {
         return (switch (ref.source()) {
             case ANILIST -> aniList.get(ref.externalId());
             case TMDB -> tmdb.get(ref.externalId());
-            case MANUAL -> throw new IllegalStateException();
+            case MAL, MANUAL -> throw new ApiException(HttpStatus.BAD_REQUEST, ref.source() + " titles can't be looked up");
         }).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "That title no longer exists on " + ref.source()));
     }
 

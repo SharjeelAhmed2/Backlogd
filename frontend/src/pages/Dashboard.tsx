@@ -1,20 +1,13 @@
 import { motion } from 'motion/react'
-import { ArrowRight, Clapperboard, Clock, Gamepad2, Link2, Plus, Star, Tv } from 'lucide-react'
+import { ArrowRight, Clapperboard, Clock, Gamepad2, Plus, Star, Tv } from 'lucide-react'
 import { Link } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import { useLogDialog } from '../components/AppLayout'
+import { ConnectionsPanel } from '../components/ConnectionsPanel'
 import { Poster } from '../components/MediaCard'
 import { kindMeta, platformMeta, relativeTime, statusLabel } from '../lib/labels'
 import { useLogs } from '../lib/logs'
 import type { LogEntry } from '../lib/types'
-
-const connections = [
-  { name: 'Letterboxd', how: 'CSV import + RSS', dot: 'bg-film' },
-  { name: 'MyAnimeList', how: 'Sign in with MAL', dot: 'bg-anime' },
-  { name: 'Steam', how: 'Sign in with Steam', dot: 'bg-steam' },
-  { name: 'PlayStation', how: 'Manual logging', dot: 'bg-psn' },
-  { name: 'Xbox', how: 'Manual logging', dot: 'bg-xbox' },
-]
 
 function TimelineRow({ entry, onClick }: { entry: LogEntry; onClick: () => void }) {
   const { media } = entry
@@ -130,25 +123,7 @@ export function Dashboard() {
           )}
         </section>
 
-        <section className="glass h-fit rounded-3xl p-6">
-          <h2 className="font-display text-lg font-semibold">Connections</h2>
-          <ul className="mt-4 space-y-2">
-            {connections.map((c) => (
-              <li key={c.name} className="flex items-center justify-between rounded-xl bg-ink/40 px-4 py-3 ring-1 ring-line/70">
-                <div className="flex items-center gap-3">
-                  <span className={`h-2.5 w-2.5 rounded-full ${c.dot}`} />
-                  <div>
-                    <p className="text-sm font-medium">{c.name}</p>
-                    <p className="text-xs text-muted">{c.how}</p>
-                  </div>
-                </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] text-muted">
-                  <Link2 className="h-3 w-3" /> Soon
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <ConnectionsPanel />
       </div>
     </main>
   )

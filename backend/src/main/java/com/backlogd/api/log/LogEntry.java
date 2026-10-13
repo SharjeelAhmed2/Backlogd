@@ -72,7 +72,7 @@ public class LogEntry {
         this.updatedAt = this.createdAt;
     }
 
-    void apply(LogStatus status, BigDecimal rating, Platform platform, String console, Integer progress,
+    public void apply(LogStatus status, BigDecimal rating, Platform platform, String console, Integer progress,
                BigDecimal hours, LocalDate startedOn, LocalDate finishedOn, String notes) {
         this.status = status;
         this.rating = rating;
