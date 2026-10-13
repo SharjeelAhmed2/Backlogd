@@ -28,6 +28,9 @@ public class Connection {
     @Column(nullable = false)
     private String account;
 
+    @Column(name = "display_name")
+    private String displayName;
+
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 
@@ -48,8 +51,9 @@ public class Connection {
         this.createdAt = Instant.now();
     }
 
-    public void recordSync(String account, String summary) {
+    public void recordSync(String account, String displayName, String summary) {
         this.account = account;
+        this.displayName = displayName;
         this.lastSyncedAt = Instant.now();
         this.lastSummary = summary.length() > 300 ? summary.substring(0, 300) : summary;
     }
@@ -60,6 +64,10 @@ public class Connection {
 
     public String getAccount() {
         return account;
+    }
+
+    public String getDisplayName() {
+        return displayName;
     }
 
     public Instant getLastSyncedAt() {

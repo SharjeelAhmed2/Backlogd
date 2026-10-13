@@ -1,5 +1,7 @@
 package com.backlogd.api.catalog;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.backlogd.api.common.ApiException;
 import com.backlogd.api.media.MediaKind;
 import com.backlogd.api.media.MediaSource;
@@ -24,6 +26,8 @@ import java.util.function.Function;
  */
 @Component
 public class TmdbClient {
+
+    private static final Logger log = LoggerFactory.getLogger(TmdbClient.class);
 
     private static final String IMAGES = "https://image.tmdb.org/t/p/";
 
@@ -80,6 +84,8 @@ public class TmdbClient {
         } catch (HttpClientErrorException.Unauthorized e) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "TMDB rejected the API key — check TMDB_API_KEY in backend/.env");
         } catch (RestClientException e) {
+            // Only the root cause: the exception message itself can contain the request URL (and API key)
+            log.warn("TMDB request failed: {}", e.getMostSpecificCause().toString());
             throw new ApiException(HttpStatus.BAD_GATEWAY, "TMDB is not responding, try again in a moment");
         }
     }

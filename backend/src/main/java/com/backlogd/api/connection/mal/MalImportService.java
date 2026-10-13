@@ -95,7 +95,7 @@ public class MalImportService {
 
         Connection connection = connections.findByUserIdAndProvider(userId, Provider.MAL)
                 .orElseGet(() -> connections.save(new Connection(userId, Provider.MAL, username)));
-        connection.recordSync(username, imported + " imported, " + already + " already in your log");
+        connection.recordSync(username, username, imported + " imported, " + already + " already in your log");
         return new ImportResult(entries.size(), imported, already, fallback);
     }
 

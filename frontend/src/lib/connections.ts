@@ -6,6 +6,7 @@ export type Provider = 'MAL' | 'STEAM' | 'LETTERBOXD'
 export type Connection = {
   provider: Provider
   account: string
+  displayName: string | null
   lastSyncedAt: string | null
   lastSummary: string | null
 }
@@ -15,24 +16,34 @@ export type ConnectionsResponse = {
   available: Record<Provider, boolean>
 }
 
+/** Union of the MAL and Steam import results; fields a provider doesn't report are absent. */
 export type ImportResult = {
   total: number
   imported: number
   alreadyLogged: number
-  notOnAniList: number
+  updated?: number
+  notOnAniList?: number
 }
 
 const KEY = ['connections'] as const
+
+const importPaths: Partial<Record<Provider, { path: string; field: string }>> = {
+  MAL: { path: '/connections/mal/import', field: 'username' },
+  STEAM: { path: '/connections/steam/import', field: 'profile' },
+}
 
 export function useConnections() {
   return useQuery({ queryKey: KEY, queryFn: () => api<ConnectionsResponse>('/connections') })
 }
 
-export function useMalImport() {
+export function useImport(provider: Provider) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (username: string) =>
-      api<ImportResult>('/connections/mal/import', { method: 'POST', body: JSON.stringify({ username }) }),
+    mutationFn: (account: string) => {
+      const target = importPaths[provider]
+      if (!target) throw new Error(`${provider} import is not available`)
+      return api<ImportResult>(target.path, { method: 'POST', body: JSON.stringify({ [target.field]: account }) })
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY })
       qc.invalidateQueries({ queryKey: ['logs'] })

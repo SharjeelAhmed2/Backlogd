@@ -1,6 +1,7 @@
 package com.backlogd.api.connection;
 
 import com.backlogd.api.connection.mal.MalClient;
+import com.backlogd.api.connection.steam.SteamClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -23,13 +24,16 @@ public class ConnectionController {
 
     private final ConnectionRepository connections;
     private final MalClient mal;
+    private final SteamClient steam;
 
-    public ConnectionController(ConnectionRepository connections, MalClient mal) {
+    public ConnectionController(ConnectionRepository connections, MalClient mal, SteamClient steam) {
         this.connections = connections;
         this.mal = mal;
+        this.steam = steam;
     }
 
-    public record ConnectionResponse(Provider provider, String account, Instant lastSyncedAt, String lastSummary) {
+    public record ConnectionResponse(Provider provider, String account, String displayName, Instant lastSyncedAt,
+                                     String lastSummary) {
     }
 
     /** Linked accounts, plus which providers the server has credentials for. */
@@ -39,10 +43,11 @@ public class ConnectionController {
     @GetMapping
     public ConnectionsResponse list(@AuthenticationPrincipal Jwt jwt) {
         List<ConnectionResponse> linked = connections.findByUserId(UUID.fromString(jwt.getSubject())).stream()
-                .map(c -> new ConnectionResponse(c.getProvider(), c.getAccount(), c.getLastSyncedAt(), c.getLastSummary()))
+                .map(c -> new ConnectionResponse(c.getProvider(), c.getAccount(), c.getDisplayName(), c.getLastSyncedAt(),
+                        c.getLastSummary()))
                 .toList();
         return new ConnectionsResponse(linked,
-                Map.of(Provider.MAL, mal.isConfigured(), Provider.STEAM, false, Provider.LETTERBOXD, false));
+                Map.of(Provider.MAL, mal.isConfigured(), Provider.STEAM, steam.isConfigured(), Provider.LETTERBOXD, false));
     }
 
     /** Unlinks the account. Entries that were imported stay in the log. */

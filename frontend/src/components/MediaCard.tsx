@@ -1,4 +1,5 @@
 import { Clapperboard, Gamepad2, Star, Tv } from 'lucide-react'
+import { useState } from 'react'
 import { platformMeta, statusLabel, statusStyle } from '../lib/labels'
 import type { LogEntry, MediaKind } from '../lib/types'
 
@@ -12,8 +13,12 @@ const fallbackHue: Record<MediaKind, string> = {
 
 export function Poster({ kind, title, url, className = '' }: { kind: MediaKind; title: string; url: string | null; className?: string }) {
   const Icon = kindIcon[kind]
-  if (url) {
-    return <img src={url} alt="" loading="lazy" className={`h-full w-full object-cover ${className}`} />
+  // Some images 404 (e.g. older Steam games have no portrait art); fall back to the placeholder
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  if (url && url !== failedUrl) {
+    return (
+      <img src={url} alt="" loading="lazy" onError={() => setFailedUrl(url)} className={`h-full w-full object-cover ${className}`} />
+    )
   }
   return (
     <div className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-gradient-to-br p-4 text-center ${fallbackHue[kind]} ${className}`}>

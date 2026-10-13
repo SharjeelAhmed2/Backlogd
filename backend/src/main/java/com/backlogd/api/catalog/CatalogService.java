@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class CatalogService {
@@ -59,6 +60,12 @@ public class CatalogService {
                 .orElseGet(() -> mediaRepository.save(Media.from(fetch(ref))));
     }
 
+    /** The cached copy of an external title, if one was stored before. */
+    @Transactional(readOnly = true)
+    public Optional<Media> findCached(MediaSource source, String externalId) {
+        return mediaRepository.findBySourceAndExternalId(source, externalId);
+    }
+
     /** Caches an already-fetched catalog title (used by importers), reusing the stored copy if present. */
     @Transactional
     public Media resolve(CatalogItem item) {
@@ -70,7 +77,7 @@ public class CatalogService {
         return (switch (ref.source()) {
             case ANILIST -> aniList.get(ref.externalId());
             case TMDB -> tmdb.get(ref.externalId());
-            case MAL, MANUAL -> throw new ApiException(HttpStatus.BAD_REQUEST, ref.source() + " titles can't be looked up");
+            case MAL, STEAM, MANUAL -> throw new ApiException(HttpStatus.BAD_REQUEST, ref.source() + " titles can't be looked up");
         }).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "That title no longer exists on " + ref.source()));
     }
 

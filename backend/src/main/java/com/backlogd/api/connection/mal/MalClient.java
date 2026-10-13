@@ -1,5 +1,7 @@
 package com.backlogd.api.connection.mal;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.backlogd.api.common.ApiException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -17,6 +19,8 @@ import java.util.Map;
 /** Reads a user's public anime list from the MyAnimeList v2 API using the app's Client ID. */
 @Component
 public class MalClient {
+
+    private static final Logger log = LoggerFactory.getLogger(MalClient.class);
 
     private static final String FIELDS = "list_status{status,score,num_episodes_watched,start_date,finish_date},num_episodes,start_season,main_picture";
     private static final int PAGE_SIZE = 1000;
@@ -72,6 +76,8 @@ public class MalClient {
         } catch (HttpClientErrorException.Unauthorized | HttpClientErrorException.BadRequest e) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "MyAnimeList rejected the Client ID — check MAL_CLIENT_ID in backend/.env");
         } catch (RestClientException e) {
+            // Only the root cause: the exception message itself can contain the request URL (and API key)
+            log.warn("MyAnimeList request failed: {}", e.getMostSpecificCause().toString());
             throw new ApiException(HttpStatus.BAD_GATEWAY, "MyAnimeList is not responding, try again in a moment");
         }
         return all;

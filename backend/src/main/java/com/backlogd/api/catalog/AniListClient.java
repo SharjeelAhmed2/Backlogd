@@ -1,5 +1,7 @@
 package com.backlogd.api.catalog;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.backlogd.api.common.ApiException;
 import com.backlogd.api.media.MediaKind;
 import com.backlogd.api.media.MediaSource;
@@ -20,6 +22,8 @@ import java.util.Optional;
 /** Anime lookups via the public AniList GraphQL API (no key needed). */
 @Component
 public class AniListClient {
+
+    private static final Logger log = LoggerFactory.getLogger(AniListClient.class);
 
     private static final String FIELDS = """
             fragment f on Media {
@@ -130,6 +134,8 @@ public class AniListClient {
             String retryAfter = e.getResponseHeaders() == null ? null : e.getResponseHeaders().getFirst("Retry-After");
             throw new RateLimited(retryAfter == null || !retryAfter.matches("\\d+") ? 60 : Integer.parseInt(retryAfter));
         } catch (RestClientException e) {
+            // Only the root cause: the exception message itself can contain the request URL (and API key)
+            log.warn("AniList request failed: {}", e.getMostSpecificCause().toString());
             throw new ApiException(HttpStatus.BAD_GATEWAY, "AniList is not responding, try again in a moment");
         }
     }
