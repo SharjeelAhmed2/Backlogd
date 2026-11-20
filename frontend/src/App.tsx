@@ -7,6 +7,8 @@ import { Landing } from './pages/Landing'
 import { LibraryPage } from './pages/LibraryPage'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
+import { StatsPage } from './pages/StatsPage'
+import { WrappedPage } from './pages/WrappedPage'
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
           <Route path="films" element={<LibraryPage kind="FILM" />} />
           <Route path="anime" element={<LibraryPage kind="ANIME" />} />
           <Route path="games" element={<LibraryPage kind="GAME" />} />
+          <Route path="stats" element={<StatsPage />} />
+          <Route path="wrapped/:year" element={<WrappedPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

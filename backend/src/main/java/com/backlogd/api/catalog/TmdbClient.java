@@ -17,6 +17,8 @@ import org.springframework.web.util.UriBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -34,6 +36,7 @@ public class TmdbClient {
     private final String apiKey;
     private final boolean bearer;
     private final RestClient http;
+    private volatile Map<Integer, String> genreNames;
 
     public TmdbClient(@Value("${app.tmdb.api-key:}") String apiKey) {
         this.apiKey = apiKey == null ? "" : apiKey.trim();
@@ -54,7 +57,7 @@ public class TmdbClient {
                 .queryParam("query", query)
                 .queryParam("include_adult", false), SearchResponse.class);
         return res == null || res.results() == null ? List.of()
-                : res.results().stream().map(TmdbClient::toItem).toList();
+                : res.results().stream().map(this::toItem).toList();
     }
 
     public Optional<CatalogItem> get(String id) {
@@ -62,10 +65,46 @@ public class TmdbClient {
             return Optional.empty();
         }
         try {
-            return Optional.ofNullable(get(b -> b.path("/movie/" + id), Movie.class)).map(TmdbClient::toItem);
+            return Optional.ofNullable(get(b -> b.path("/movie/" + id), Movie.class)).map(this::toItem);
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * Best match for a title released in {@code year} (e.g. from a Letterboxd export): first an exact
+     * release-year search, then a plain search accepting a year off by one. Empty when nothing fits.
+     */
+    public Optional<CatalogItem> match(String title, Integer year) {
+        if (year != null) {
+            SearchResponse exact = get(b -> b.path("/search/movie")
+                    .queryParam("query", title)
+                    .queryParam("primary_release_year", year)
+                    .queryParam("include_adult", false), SearchResponse.class);
+            if (exact != null && exact.results() != null && !exact.results().isEmpty()) {
+                return Optional.of(toItem(exact.results().getFirst()));
+            }
+        }
+        List<CatalogItem> results = search(title);
+        return results.stream()
+                .filter(i -> year == null || (i.year() != null && Math.abs(i.year() - year) <= 1))
+                .findFirst();
+    }
+
+    /** TMDB search results only carry genre ids; the id -> name list is fetched once and cached. */
+    private Map<Integer, String> genreNames() {
+        Map<Integer, String> names = genreNames;
+        if (names == null) {
+            try {
+                GenreList list = get(b -> b.path("/genre/movie/list"), GenreList.class);
+                names = list == null || list.genres() == null ? Map.of()
+                        : list.genres().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Genre::id, Genre::name, (a, b) -> a));
+                genreNames = names;
+            } catch (ApiException e) {
+                return Map.of(); // try again next time
+            }
+        }
+        return names;
     }
 
     private <T> T get(Function<UriBuilder, UriBuilder> uri, Class<T> type) {
@@ -90,10 +129,12 @@ public class TmdbClient {
         }
     }
 
-    private static CatalogItem toItem(Movie m) {
+    private CatalogItem toItem(Movie m) {
         Integer year = m.releaseDate() != null && m.releaseDate().length() >= 4
                 ? Integer.valueOf(m.releaseDate().substring(0, 4)) : null;
-        List<String> genres = m.genres() == null ? List.of() : m.genres().stream().map(Genre::name).toList();
+        List<String> genres = m.genres() != null ? m.genres().stream().map(Genre::name).toList()
+                : m.genreIds() == null ? List.of()
+                : m.genreIds().stream().map(genreNames()::get).filter(Objects::nonNull).toList();
         return new CatalogItem(MediaKind.FILM, MediaSource.TMDB, String.valueOf(m.id()), m.title(), year,
                 image("w500", m.posterPath()), image("w1280", m.backdropPath()),
                 m.overview() == null || m.overview().isBlank() ? null : m.overview(), null, genres);
@@ -110,10 +151,14 @@ public class TmdbClient {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Movie(long id, String title, @JsonProperty("release_date") String releaseDate,
                  @JsonProperty("poster_path") String posterPath, @JsonProperty("backdrop_path") String backdropPath,
-                 String overview, List<Genre> genres) {
+                 String overview, List<Genre> genres, @JsonProperty("genre_ids") List<Integer> genreIds) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Genre(String name) {
+    record Genre(Integer id, String name) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record GenreList(List<Genre> genres) {
     }
 }

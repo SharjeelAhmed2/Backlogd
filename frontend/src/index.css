@@ -20,6 +20,12 @@
   --color-steam: #66c0f4;
   --color-psn: #2f8cff;
   --color-xbox: #3fbf3f;
+
+  /* Chart fills: validated as a set (lightness band, colour-blind + normal-vision separation, 3:1 on surface) */
+  --color-chart-film: #1aa851;
+  --color-chart-anime: #8b6cf0;
+  --color-chart-game: #2f9fd9;
+  --color-chart-single: #f2b544;
 }
 
 @layer base {

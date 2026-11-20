@@ -1,5 +1,6 @@
 package com.backlogd.api.connection;
 
+import com.backlogd.api.catalog.TmdbClient;
 import com.backlogd.api.connection.mal.MalClient;
 import com.backlogd.api.connection.steam.SteamClient;
 import org.springframework.http.HttpStatus;
@@ -25,11 +26,13 @@ public class ConnectionController {
     private final ConnectionRepository connections;
     private final MalClient mal;
     private final SteamClient steam;
+    private final TmdbClient tmdb;
 
-    public ConnectionController(ConnectionRepository connections, MalClient mal, SteamClient steam) {
+    public ConnectionController(ConnectionRepository connections, MalClient mal, SteamClient steam, TmdbClient tmdb) {
         this.connections = connections;
         this.mal = mal;
         this.steam = steam;
+        this.tmdb = tmdb;
     }
 
     public record ConnectionResponse(Provider provider, String account, String displayName, Instant lastSyncedAt,
@@ -47,7 +50,8 @@ public class ConnectionController {
                         c.getLastSummary()))
                 .toList();
         return new ConnectionsResponse(linked,
-                Map.of(Provider.MAL, mal.isConfigured(), Provider.STEAM, steam.isConfigured(), Provider.LETTERBOXD, false));
+                Map.of(Provider.MAL, mal.isConfigured(), Provider.STEAM, steam.isConfigured(), 
+                        Provider.LETTERBOXD, tmdb.isConfigured()));
     }
 
     /** Unlinks the account. Entries that were imported stay in the log. */

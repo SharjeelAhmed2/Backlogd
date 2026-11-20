@@ -1,8 +1,15 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, Link2, Loader2, RefreshCw, Unlink } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { Check, Link2, Loader2, RefreshCw, Unlink, Upload } from 'lucide-react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../lib/api'
-import { useConnections, useDisconnect, useImport, type ImportResult, type Provider } from '../lib/connections'
+import {
+  useConnections,
+  useDisconnect,
+  useImport,
+  useLetterboxdUpload,
+  type ImportResult,
+  type Provider,
+} from '../lib/connections'
 import { relativeTime } from '../lib/labels'
 
 type ProviderConfig = {
@@ -44,7 +51,6 @@ const importable: ProviderConfig[] = [
 ]
 
 const comingSoon = [
-  { name: 'Letterboxd', how: 'CSV import + RSS', dot: 'bg-film' },
   { name: 'PlayStation', how: 'Manual logging', dot: 'bg-psn' },
   { name: 'Xbox', how: 'Manual logging', dot: 'bg-xbox' },
 ]
@@ -176,11 +182,94 @@ function ImportRow({ config }: { config: ProviderConfig }) {
   )
 }
 
+/** Letterboxd has no public API, so the user uploads the export ZIP instead of linking an account. */
+function LetterboxdRow() {
+  const { data } = useConnections()
+  const upload = useLetterboxdUpload()
+  const disconnect = useDisconnect()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [result, setResult] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const available = data?.available.LETTERBOXD ?? false
+  const linked = data?.connections.find((c) => c.provider === 'LETTERBOXD')
+  const busy = upload.isPending
+
+  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow picking the same file again
+    if (!file) return
+    setError(null)
+    setResult(null)
+    try {
+      setResult(summarize(await upload.mutateAsync(file)))
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Import failed')
+    }
+  }
+
+  const subtitle = linked
+    ? `${linked.displayName ?? 'Export'}${linked.lastSyncedAt ? ` · imported ${relativeTime(linked.lastSyncedAt)}` : ''}`
+    : available
+      ? 'Upload your export ZIP'
+      : 'Needs TMDB_API_KEY in backend/.env'
+
+  return (
+    <li className="rounded-xl bg-ink/40 px-4 py-3 ring-1 ring-line/70">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-film" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Letterboxd</p>
+            <p className="truncate text-xs text-muted">{subtitle}</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <input ref={fileInput} type="file" accept=".zip,.csv" className="hidden" onChange={onFile} />
+          <button
+            onClick={() => fileInput.current?.click()}
+            disabled={busy || !available}
+            title={linked ? 'Upload a newer export to add new films' : 'Upload your Letterboxd export'}
+            className="inline-flex items-center gap-1 rounded-full bg-film/15 px-2.5 py-1 text-[11px] font-medium text-film ring-1 ring-film/40 transition hover:bg-film/25 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+            {busy ? 'Importing' : linked ? 'Upload newer' : 'Upload export'}
+          </button>
+          {linked && (
+            <button
+              onClick={() => disconnect.mutate('LETTERBOXD')}
+              disabled={busy}
+              title="Forget this connection (keeps imported films)"
+              aria-label="Disconnect Letterboxd"
+              className="rounded-full p-1.5 text-muted transition hover:text-red-300"
+            >
+              <Unlink className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+      {!linked && available && !busy && !error && !result && (
+        <p className="mt-2 text-[11px] text-muted">
+          On Letterboxd: Settings → Data → <span className="text-text/80">Export your data</span>, then upload the ZIP here.
+        </p>
+      )}
+      {busy && <p className="mt-2 text-xs text-muted">Matching your films on TMDB… a big diary can take a minute.</p>}
+      {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+      {!busy && !error && (result ?? linked?.lastSummary) && (
+        <p className="mt-2 inline-flex items-center gap-1 text-xs text-film">
+          <Check className="h-3 w-3" /> {result ?? linked?.lastSummary}
+        </p>
+      )}
+    </li>
+  )
+}
+
 export function ConnectionsPanel() {
   return (
     <section className="glass h-fit rounded-3xl p-6">
       <h2 className="font-display text-lg font-semibold">Connections</h2>
       <ul className="mt-4 space-y-2">
+        <LetterboxdRow />
         {importable.map((c) => (
           <ImportRow key={c.provider} config={c} />
         ))}

@@ -1,6 +1,6 @@
 # Backlogd
 
-**One log for every film, anime and game.** Search titles from TMDB and AniList, import your MyAnimeList and Steam libraries, and add everything else you've played by hand, from PS2 classics to this week's release. Each entry gets a poster card, a status, a rating and your progress.
+**One log for every film, anime and game.** Search titles from TMDB and AniList, import your Letterboxd, MyAnimeList and Steam history, and add everything else you've played by hand, from PS2 classics to this week's release. Each entry gets a poster card, a status, a rating and your progress, and your year is summed up in stats and a Spotify-style Wrapped.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -26,9 +26,12 @@
 - **Films:** search TMDB, then rate (half-star steps), log watch dates and add notes.
 - **Anime:** search AniList and track episodes. Completing a show fills in its episode count.
 - **Games:** one page for every platform (PlayStation, Xbox, PC, Nintendo…) with the console (PS2, Xbox 360, Steam…) and hours played. Filter by platform and status.
+- **Letterboxd import:** upload the export ZIP (Settings → Data → Export your data). Each film is matched on TMDB by title and year. Watched films keep their rating, last diary date and review, and your watchlist becomes *Watchlist*. Uploading a newer export later only adds what's new.
 - **MyAnimeList import:** import a public list by username. Titles are matched to AniList so they share artwork. Status, scores, episodes and dates carry over, and syncing again never creates duplicates.
-- **Steam import** *(beta)*: owned games and playtime, with Steam cover art. Status comes from playtime: played in the last 2 weeks is *Playing*, played earlier is *On hold*, never launched is *Backlog*. Syncing again refreshes hours.
+- **Steam import:** owned games and playtime, with Steam cover art. Status comes from playtime: played in the last 2 weeks is *Playing*, played earlier is *On hold*, never launched is *Backlog*. Syncing again refreshes hours.
 - **Dashboard:** totals, a timeline of recent activity and connected accounts.
+- **Stats:** all time or by year. Shows titles finished per month, how you rate, top genres, hours by platform and your highest rated titles. Charts have hover tooltips and a table view, and the colours are checked for colour-blind safety.
+- **Wrapped:** a full-screen, auto-playing story of your year: films watched, film of the year, anime episodes, game hours, top genre, busiest month and your critic personality, ending on a summary card.
 - A dark, poster-first UI that works on desktop and phone.
 
 ## Tech stack
@@ -37,7 +40,7 @@
 |---|---|
 | **Backend** | Java 21 · Spring Boot 4 · Spring Security (OAuth2 resource server, HS256 JWT) · Spring Data JPA / Hibernate 7 · Flyway · PostgreSQL |
 | **Frontend** | React 19 · TypeScript · Vite 6 · Tailwind CSS 4 · TanStack Query · React Router 7 · Motion · Lucide |
-| **External APIs** | TMDB (films) · AniList GraphQL (anime) · MyAnimeList v2 (list import) · Steam Web API (library import) |
+| **External APIs** | TMDB (films, Letterboxd matching) · AniList GraphQL (anime) · MyAnimeList v2 (list import) · Steam Web API (library import) |
 
 ## API
 
@@ -75,8 +78,9 @@ Every endpoint except register and login needs an `Authorization: Bearer <token>
 |---|---|---|
 | `GET` | `/api/connections` | Linked accounts and which providers the server is configured for |
 | `POST` | `/api/connections/mal/import` | `{username}`: link the account and import (or re-sync) a public MAL anime list |
+| `POST` | `/api/connections/letterboxd/import` | Multipart upload with a `file` field: the Letterboxd export ZIP, or one CSV from it |
 | `POST` | `/api/connections/steam/import` | `{profile}`: a profile link, SteamID or custom URL. Imports or re-syncs a Steam library |
-| `DELETE` | `/api/connections/{MAL\|STEAM}` | Unlink the account. Imported entries stay |
+| `DELETE` | `/api/connections/{MAL\|STEAM\|LETTERBOXD}` | Unlink the account. Imported entries stay |
 
 ## Running locally
 
@@ -88,7 +92,7 @@ Every endpoint except register and login needs an `Authorization: Bearer <token>
    |---|---|---|
    | `DB_USERNAME`, `DB_PASSWORD` | ✅ | Your PostgreSQL login. Tables are created in a `backlogd` schema on first start |
    | `JWT_SECRET` | ✅ | Any base64 value of 32 bytes or more (the example file shows how to generate one) |
-   | `TMDB_API_KEY` | for film search | [themoviedb.org → Settings → API](https://www.themoviedb.org/settings/api) |
+   | `TMDB_API_KEY` | for film search and Letterboxd import | [themoviedb.org → Settings → API](https://www.themoviedb.org/settings/api) |
    | `MAL_CLIENT_ID` | for MAL import | [myanimelist.net/apiconfig](https://myanimelist.net/apiconfig) |
    | `STEAM_API_KEY` | for Steam import | [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey) |
 
@@ -109,11 +113,11 @@ Every endpoint except register and login needs an `Authorization: Bearer <token>
 
 ## Roadmap
 
-- [ ] Letterboxd import (CSV export + RSS)
+- [x] Letterboxd import (export ZIP)
+- [x] Stats page and a yearly "Wrapped" recap
 - [ ] IGDB search for console games
-- [ ] Stats page and a yearly "Wrapped" recap
 - [ ] Public profile pages
 
 ## Credits
 
-Film data and images come from [TMDB](https://www.themoviedb.org/). This product uses the TMDB API but is not endorsed or certified by TMDB. Anime data comes from [AniList](https://anilist.co/) and [MyAnimeList](https://myanimelist.net/), and game library data and artwork from [Steam](https://store.steampowered.com/). Backlogd is not affiliated with any of these services.
+Film data and images come from [TMDB](https://www.themoviedb.org/). This product uses the TMDB API but is not endorsed or certified by TMDB. Imports read exports from [Letterboxd](https://letterboxd.com/). Anime data comes from [AniList](https://anilist.co/) and [MyAnimeList](https://myanimelist.net/), and game library data and artwork from [Steam](https://store.steampowered.com/). Backlogd is not affiliated with any of these services.

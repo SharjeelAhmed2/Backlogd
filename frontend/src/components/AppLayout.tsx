@@ -1,4 +1,4 @@
-import { Clapperboard, Gamepad2, LayoutDashboard, LogOut, Plus, Tv } from 'lucide-react'
+import { BarChart3, Clapperboard, Gamepad2, LayoutDashboard, LogOut, Plus, Tv } from 'lucide-react'
 import { createContext, useCallback, useContext, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
@@ -25,6 +25,7 @@ const nav = [
   { to: '/app/films', label: 'Films', icon: Clapperboard },
   { to: '/app/anime', label: 'Anime', icon: Tv },
   { to: '/app/games', label: 'Games', icon: Gamepad2 },
+  { to: '/app/stats', label: 'Stats', icon: BarChart3 },
 ]
 
 function NavItems({ compact = false }: { compact?: boolean }) {

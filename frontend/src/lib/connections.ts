@@ -23,6 +23,7 @@ export type ImportResult = {
   alreadyLogged: number
   updated?: number
   notOnAniList?: number
+  unmatched?: number
 }
 
 const KEY = ['connections'] as const
@@ -43,6 +44,22 @@ export function useImport(provider: Provider) {
       const target = importPaths[provider]
       if (!target) throw new Error(`${provider} import is not available`)
       return api<ImportResult>(target.path, { method: 'POST', body: JSON.stringify({ [target.field]: account }) })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      qc.invalidateQueries({ queryKey: ['logs'] })
+    },
+  })
+}
+
+/** Uploads a Letterboxd export (ZIP or CSV). */
+export function useLetterboxdUpload() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api<ImportResult>('/connections/letterboxd/import', { method: 'POST', body: form })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY })

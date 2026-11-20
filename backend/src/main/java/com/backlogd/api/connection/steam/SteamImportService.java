@@ -2,6 +2,7 @@ package com.backlogd.api.connection.steam;
 
 import com.backlogd.api.catalog.CatalogItem;
 import com.backlogd.api.catalog.CatalogService;
+import com.backlogd.api.common.Titles;
 import com.backlogd.api.connection.Connection;
 import com.backlogd.api.connection.ConnectionRepository;
 import com.backlogd.api.connection.Provider;
@@ -19,13 +20,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.Normalizer;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -144,11 +143,8 @@ public class SteamImportService {
         return m == null ? 0 : m;
     }
 
-    /** "ELDEN RING™" and "Elden Ring" compare equal. */
     static String normalize(String title) {
-        String noMarks = Objects.requireNonNullElse(title, "").replaceAll("[\u2122\u00AE\u00A9]", "");
-        String plain = Normalizer.normalize(noMarks, Normalizer.Form.NFKD);
-        return plain.toLowerCase().replaceAll("[^a-z0-9]", "");
+        return Titles.normalize(title);
     }
 
     private static CatalogItem toItem(OwnedGame g) {
